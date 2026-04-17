@@ -46,7 +46,7 @@ export default async function CourseDetailPage({ params }: Props) {
   return (
     <div>
       {/* Hero banner */}
-      <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white">
+      <div className="bg-linear-to-r from-gray-900 to-gray-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="max-w-3xl">
             <span className="text-xs bg-violet-600 text-white px-2.5 py-1 rounded-full font-medium">

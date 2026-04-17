@@ -21,7 +21,7 @@ export default function AboutPage() {
   return (
     <div>
       {/* Hero */}
-      <section className="bg-gradient-to-br from-violet-900 to-indigo-900 text-white py-20">
+      <section className="bg-linear-to-br from-violet-900 to-indigo-900 text-white py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <h1 className="text-4xl font-extrabold mb-4">About SkillCraft</h1>
           <p className="text-violet-200 text-lg leading-relaxed max-w-2xl mx-auto">

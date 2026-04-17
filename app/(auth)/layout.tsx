@@ -3,7 +3,7 @@ import { BookOpen } from 'lucide-react'
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-violet-950 via-violet-900 to-indigo-900 px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-linear-to-br from-violet-950 via-violet-900 to-indigo-900 px-4">
       <Link href="/" className="flex items-center gap-2 text-white font-bold text-2xl mb-8">
         <BookOpen className="w-7 h-7 text-violet-300" />
         SkillCraft
