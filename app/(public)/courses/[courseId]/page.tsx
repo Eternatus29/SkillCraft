@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { Users, Clock, Star, CheckCircle2, BookOpen, ChevronDown } from 'lucide-react'
+import mongoose from 'mongoose'
 import { connectDB } from '@/lib/db'
 import Course from '@/models/Course'
 import { getSession } from '@/lib/session'
@@ -13,20 +14,49 @@ import type { CourseDetailData } from '@/types'
 interface Props { params: Promise<{ courseId: string }> }
 
 async function getCourse(id: string): Promise<CourseDetailData | null> {
+  if (!mongoose.Types.ObjectId.isValid(id)) return null
+
   try {
     await connectDB()
-    const course = await Course.findById(id)
-      .populate('instructor', 'firstName lastName avatar')
-      .populate('category', 'name')
-      .populate({
-        path: 'sections',
-        populate: { path: 'subSections', select: 'title timeDuration' },
-      })
-      .populate({ path: 'reviews', populate: { path: 'user', select: 'firstName lastName avatar' } })
-      .lean()
+    let course: any = null
+
+    try {
+      course = await Course.findById(id)
+        .populate('instructor', 'firstName lastName avatar')
+        .populate('category', 'name')
+        .populate({
+          path: 'sections',
+          populate: { path: 'subSections', select: 'title timeDuration' },
+        })
+        .populate({ path: 'reviews', populate: { path: 'user', select: 'firstName lastName avatar' } })
+        .lean()
+    } catch (error) {
+      // Fallback query to avoid false 404s when nested refs are malformed.
+      console.error('Course deep populate failed, using fallback query:', error)
+      course = await Course.findById(id)
+        .populate('instructor', 'firstName lastName avatar')
+        .populate('category', 'name')
+        .lean()
+    }
+
     if (!course) return null
-    return JSON.parse(JSON.stringify(course))
-  } catch { return null }
+
+    const safeCourse = {
+      ...course,
+      averageRating: Number(course.averageRating ?? 0),
+      numberOfEnrolledStudents: Number(course.numberOfEnrolledStudents ?? 0),
+      totalDuration: Number(course.totalDuration ?? 0),
+      sections: Array.isArray(course.sections) ? course.sections : [],
+      reviews: Array.isArray(course.reviews) ? course.reviews : [],
+      instructions: Array.isArray(course.instructions) ? course.instructions : [],
+      studentsEnrolled: Array.isArray(course.studentsEnrolled) ? course.studentsEnrolled : [],
+    }
+
+    return JSON.parse(JSON.stringify(safeCourse))
+  } catch (error) {
+    console.error('Get course failed:', error)
+    return null
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -85,7 +115,7 @@ export default async function CourseDetailPage({ params }: Props) {
               <h2 className="text-lg font-bold text-gray-900 mb-4">What you&apos;ll learn</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {course.whatYouWillLearn?.split('\n').filter(Boolean).map((item, i) => (
-                  <div key={i} className="flex items-start gap-2.5 text-sm text-gray-700">
+                  <div key={`${item}-${i}`} className="flex items-start gap-2.5 text-sm text-gray-700">
                     <CheckCircle2 className="w-4 h-4 text-violet-500 shrink-0 mt-0.5" />
                     {item}
                   </div>
@@ -97,12 +127,12 @@ export default async function CourseDetailPage({ params }: Props) {
             <section>
               <h2 className="text-lg font-bold text-gray-900 mb-4">Course Curriculum</h2>
               <div className="space-y-2">
-                {course.sections?.map((section: any) => (
-                  <details key={section._id} className="bg-white border border-gray-100 rounded-xl overflow-hidden group">
+                {course.sections?.map((section: any, si: number) => (
+                  <details key={String(section?._id ?? section ?? si)} className="bg-white border border-gray-100 rounded-xl overflow-hidden group">
                     <summary className="flex items-center justify-between px-5 py-4 cursor-pointer select-none hover:bg-gray-50">
                       <div className="flex items-center gap-3">
                         <BookOpen className="w-4 h-4 text-violet-500 shrink-0" />
-                        <span className="font-medium text-gray-900 text-sm">{section.title}</span>
+                        <span className="font-medium text-gray-900 text-sm">{section.title ?? `Section ${si + 1}`}</span>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-gray-500 shrink-0">
                         <span>{section.subSections?.length ?? 0} lessons</span>
@@ -110,8 +140,8 @@ export default async function CourseDetailPage({ params }: Props) {
                       </div>
                     </summary>
                     <ul className="border-t border-gray-100">
-                      {section.subSections?.map((sub: any) => (
-                        <li key={sub._id} className="flex items-center justify-between px-5 py-3 text-sm text-gray-600 hover:bg-gray-50 border-b border-gray-50 last:border-0">
+                      {section.subSections?.map((sub: any, ssi: number) => (
+                        <li key={String(sub?._id ?? `${si}-${ssi}`)} className="flex items-center justify-between px-5 py-3 text-sm text-gray-600 hover:bg-gray-50 border-b border-gray-50 last:border-0">
                           <span className="flex items-center gap-2">
                             <span className="w-1.5 h-1.5 bg-violet-400 rounded-full" />
                             {sub.title}
@@ -131,7 +161,7 @@ export default async function CourseDetailPage({ params }: Props) {
                 <h2 className="text-lg font-bold text-gray-900 mb-4">Requirements</h2>
                 <ul className="space-y-2">
                   {course.instructions.map((req, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                    <li key={`${req}-${i}`} className="flex items-start gap-2 text-sm text-gray-700">
                       <span className="mt-2 w-1.5 h-1.5 bg-gray-400 rounded-full shrink-0" />
                       {req}
                     </li>
@@ -145,8 +175,8 @@ export default async function CourseDetailPage({ params }: Props) {
               <section>
                 <h2 className="text-lg font-bold text-gray-900 mb-4">Student Reviews</h2>
                 <div className="space-y-4">
-                  {(course.reviews as any[]).slice(0, 5).map((r) => (
-                    <div key={r._id} className="bg-white rounded-xl border border-gray-100 p-5">
+                  {(course.reviews as any[]).slice(0, 5).map((r, i) => (
+                    <div key={String(r?._id ?? `${r?.user?._id ?? 'user'}-${i}`)} className="bg-white rounded-xl border border-gray-100 p-5">
                       <div className="flex items-center gap-3 mb-2">
                         {r.user?.avatar ? (
                           <img src={r.user.avatar} className="w-8 h-8 rounded-full" alt="" />
@@ -173,7 +203,13 @@ export default async function CourseDetailPage({ params }: Props) {
             <div className="sticky top-24 bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
               {course.thumbnail && (
                 <div className="relative aspect-video">
-                  <Image src={course.thumbnail} alt={course.title} fill className="object-cover" />
+                  <Image
+                    src={course.thumbnail}
+                    alt={course.title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 33vw"
+                  />
                 </div>
               )}
               <div className="p-6">
