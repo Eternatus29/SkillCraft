@@ -74,6 +74,37 @@ export default async function DashboardPage() {
     )
   }
 
+  if (session.role === 'Admin') {
+    await connectDB()
+    const [usersCount, coursesCount, reviewsCount] = await Promise.all([
+      User.countDocuments(),
+      Course.countDocuments(),
+      Course.countDocuments({ status: 'Published' }),
+    ])
+
+    return (
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">Admin Dashboard</h1>
+        <p className="text-gray-500 text-sm mb-8">Hi {session.firstName}, here&apos;s a quick platform summary.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+          <StatCard icon={Users} label="Total Users" value={usersCount} color="blue" />
+          <StatCard icon={BookOpen} label="Total Courses" value={coursesCount} color="violet" />
+          <StatCard icon={TrendingUp} label="Published Courses" value={reviewsCount} color="green" />
+          <StatCard icon={Star} label="Role" value="Admin" color="yellow" />
+        </div>
+        <div className="bg-white rounded-xl border border-gray-100 p-6">
+          <h2 className="font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/dashboard/users" className="text-sm border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50">Manage Users</Link>
+            <Link href="/dashboard/courses" className="text-sm border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50">Manage Courses</Link>
+            <Link href="/dashboard/reviews" className="text-sm border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50">View Reviews</Link>
+            <Link href="/dashboard/settings" className="text-sm border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50">Platform Settings</Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   redirect('/')
 }
 
