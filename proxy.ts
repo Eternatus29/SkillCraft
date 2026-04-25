@@ -9,7 +9,7 @@ const secret = new TextEncoder().encode(
 const COOKIE_NAME = 'skillcraft_session'
 
 const protectedRoutes = ['/dashboard', '/view-course']
-const authRoutes = ['/login', '/signup', '/verify-email', '/forgot-password', '/reset-password']
+const authRoutes = ['/login', '/signup', '/forgot-password', '/reset-password']
 
 async function getSessionFromRequest(req: NextRequest): Promise<SessionUser | null> {
   try {
@@ -22,7 +22,7 @@ async function getSessionFromRequest(req: NextRequest): Promise<SessionUser | nu
   }
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
   const user = await getSessionFromRequest(req)
 
